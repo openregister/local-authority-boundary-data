@@ -3,16 +3,20 @@
 URL='http://parlvid.mysociety.org/os/bdline_gb-2016-05.zip'
 ZIP=cache/bdline_gb-2016-05.zip
 
-exec: county.tsv district.tsv clean_tmp
+exec: os-boundary-line.tsv clean_tmp
+
+os-boundary-line.tsv: county.tsv district.tsv
+	if [[ -e county.tsv ]];   then cat county.tsv > $@ ; fi
+	if [[ -e district.tsv ]]; then sed 1d district.tsv >> $@ ; fi
 
 district.tsv: district.csv
-	mix run -e 'BoundaryLine.tsv(nil, "district.csv", :district, 4)' | grep -v Compiling > $@
+	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "district.csv", :district, 4)' | grep -v Compiling > $@
 
 county.tsv: mix.deps county.csv
-	mix run -e 'BoundaryLine.tsv(nil, "county.csv", :county, 4)' | grep -v Compiling > $@
+	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "county.csv", :county, 4)' | grep -v Compiling > $@
 
 mix.deps:
-	mix deps.get
+	[[ -e mix.lock ]] || mix deps.get
 
 district.csv: county.csv district.shp
 	[[ -e $@ ]] || ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ district.shp
@@ -45,14 +49,16 @@ district.shx:	$(ZIP)
 	unzip -p $(ZIP) Data/GB/district_borough_unitary_region.shx > $@
 
 clean_tmp:
-	rm *.shx
-	rm *.prj
-	rm *.dbf
-	rm *.shp
+	rm -f *.shx
+	rm -f *.prj
+	rm -f *.dbf
+	rm -f *.shp
+	rm -f county.tsv
+	rm -f district.tsv
 
 clean:
-	rm *.csv
-	rm *.tsv
+	rm -f *.csv
+	rm -f *.tsv
 
 $(ZIP):
 	mkdir -p cache
