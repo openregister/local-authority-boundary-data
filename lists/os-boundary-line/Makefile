@@ -10,13 +10,14 @@ os-boundary-line.tsv: county.tsv district.tsv
 	if [[ -e district.tsv ]]; then sed 1d district.tsv >> $@ ; fi
 
 district.tsv: district.csv
-	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "district.csv", :district, 4)' | grep -v Compiling > $@
+	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "district.csv", :district, 4)' > $@
 
 county.tsv: mix.deps county.csv
-	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "county.csv", :county, 4)' | grep -v Compiling > $@
+	[[ -e os-boundary-line.tsv ]] || mix run -e 'BoundaryLine.tsv(nil, "county.csv", :county, 4)' > $@
 
 mix.deps:
 	[[ -e mix.lock ]] || mix deps.get
+	[[ -e os-boundary-line.tsv ]] || mix compile
 
 district.csv: county.csv district.shp
 	[[ -e $@ ]] || ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ district.shp
