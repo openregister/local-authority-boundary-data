@@ -3,13 +3,22 @@
 URL='http://parlvid.mysociety.org/os/bdline_gb-2016-05.zip'
 ZIP=cache/bdline_gb-2016-05.zip
 
-exec: district.csv clean_tmp
+exec: county.tsv district.tsv clean_tmp
+
+district.tsv: district.csv
+	mix run -e 'BoundaryLine.tsv(nil, "district.csv", :district, 4)' | grep -v Compiling > $@
+
+county.tsv: mix.deps county.csv
+	mix run -e 'BoundaryLine.tsv(nil, "county.csv", :county, 4)' | grep -v Compiling > $@
+
+mix.deps:
+	mix deps.get
 
 district.csv: county.csv district.shp
-	ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ district.shp
+	[[ -e $@ ]] || ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ district.shp
 
 county.csv: county.shp
-	ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ county.shp
+	[[ -e $@ ]] || ogr2ogr -s_srs EPSG:27700 -t_srs EPSG:4326 -f CSV -lco "GEOMETRY=AS_WKT" -lco "SEPARATOR=TAB" $@ county.shp
 
 county.shp:	county.dbf
 	unzip -p $(ZIP) Data/GB/county_region.shp > $@
@@ -43,6 +52,7 @@ clean_tmp:
 
 clean:
 	rm *.csv
+	rm *.tsv
 
 $(ZIP):
 	mkdir -p cache
