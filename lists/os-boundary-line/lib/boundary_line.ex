@@ -27,23 +27,19 @@ defmodule BoundaryLine do
     end
   end
 
+  def apply_filter(stream, filter) when is_nil(filter), do: stream
+  def apply_filter(stream, filter), do: stream |> Stream.filter(& &1 |> String.match?(~r[#{filter}]))
+
+  def apply_take(stream, take) when is_nil(take), do: stream
+  def apply_take(stream, take), do: stream |> Stream.take(take)
+
   def stream(take \\ 1, file \\ 'county.csv', type \\ :county, dp \\ 1, filter \\ nil) do
     io = File.stream!(file)
     headers = io |> Enum.at(0)
     stream = io
-    |> Stream.filter(& !String.contains?(&1, "WKT\tNAME"))
-
-    stream = if filter do
-               stream |> Stream.filter(& &1 |> String.match?(~r[#{filter}]))
-             else
-               stream
-             end
-
-    stream = if take do
-               stream |> Stream.take(take)
-             else
-               stream
-             end
+    |> Stream.filter(& !String.contains?(&1, headers))
+    |> apply_filter(filter)
+    |> apply_take(take)
 
     Stream.concat([headers], stream)
     |> Stream.map(& &1 |> trunc_to_fewer_dp(dp + 1))
